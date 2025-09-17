@@ -25,6 +25,16 @@ jobs:
         echo "commit_url=${COMMIT_URL}" >> $GITHUB_OUTPUT
         echo "repository=${{ github.repository }}" >> $GITHUB_OUTPUT
     
+    - name: Validate Devin API Key
+      run: |
+        if [ -z "${{ secrets.DEVIN_API_KEY }}" ]; then
+          echo "❌ Error: DEVIN_API_KEY secret no está configurado"
+          echo "Por favor configura el secret DEVIN_API_KEY en la configuración del repositorio"
+          exit 1
+        else
+          echo "✅ DEVIN_API_KEY secret está configurado"
+        fi
+    
     - name: Trigger Devin Security Review
       id: devin-review
       run: |
@@ -49,9 +59,11 @@ jobs:
         
         Si no encuentras problemas, confirma que el commit es seguro para ser integrado."
 
+        echo "🚀 Iniciando llamada a la API de Devin..."
+        
         # Llamar a la API de Devin
-        RESPONSE=$(curl -s -X POST \
-          -H "Authorization: Bearer ${{ secrets.DEVIN_API_KEY }}" \
+        RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST \
+          -H "Authorization: Bearer $DEVIN_API_KEY" \
           -H "Content-Type: application/json" \
           -d "{
             \"prompt\": \"$PROMPT\",
@@ -60,11 +72,23 @@ jobs:
           }" \
           https://api.devin.ai/v1/sessions)
         
-        echo "Devin API Response: $RESPONSE"
+        # Separar el código HTTP del cuerpo de la respuesta
+        HTTP_STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+        RESPONSE_BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS:.*//g')
+        
+        echo "📡 HTTP Status: $HTTP_STATUS"
+        echo "📋 Devin API Response: $RESPONSE_BODY"
+        
+        # Verificar el código de estado HTTP
+        if [ "$HTTP_STATUS" -ne 200 ] && [ "$HTTP_STATUS" -ne 201 ]; then
+          echo "❌ Error HTTP $HTTP_STATUS al llamar a la API de Devin"
+          echo "Response: $RESPONSE_BODY"
+          exit 1
+        fi
         
         # Extraer session_id y url de la respuesta
-        SESSION_ID=$(echo $RESPONSE | jq -r '.session_id // empty')
-        SESSION_URL=$(echo $RESPONSE | jq -r '.url // empty')
+        SESSION_ID=$(echo $RESPONSE_BODY | jq -r '.session_id // empty')
+        SESSION_URL=$(echo $RESPONSE_BODY | jq -r '.url // empty')
         
         if [ -n "$SESSION_ID" ] && [ -n "$SESSION_URL" ]; then
           echo "session_id=${SESSION_ID}" >> $GITHUB_OUTPUT
@@ -73,12 +97,13 @@ jobs:
           echo "📋 Session ID: ${SESSION_ID}"
           echo "🔗 URL de la sesión: ${SESSION_URL}"
         else
-          echo "❌ Error al crear la sesión de Devin"
-          echo "Response: $RESPONSE"
+          echo "❌ Error: No se pudo obtener session_id o url de la respuesta"
+          echo "Response: $RESPONSE_BODY"
           exit 1
         fi
       env:
         COMMIT_URL: ${{ steps.commit-info.outputs.commit_url }}
+        DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
     
     - name: Comment on PR with Devin session
       if: github.event_name == 'pull_request' && steps.devin-review.outputs.session_url
