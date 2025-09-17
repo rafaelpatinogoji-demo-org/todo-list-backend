@@ -1,8 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./src/config/database');
-const movieRoutes = require('./src/routes/movieRoutes');
-const commentRoutes = require('./src/routes/commentRoutes');
+const apiRoutes = require('./src/routes/index');
 
 const v_app = express();
 const c_PORT = process.env.PORT || 3000;
@@ -13,8 +12,7 @@ v_app.use(cors());
 v_app.use(express.json());
 v_app.use(express.urlencoded({ extended: true }));
 
-v_app.use('/api/movies', movieRoutes);
-v_app.use('/api/comments', commentRoutes);
+v_app.use('/api', apiRoutes);
 
 v_app.get('/', (p_req, p_res) => {
   p_res.json({
