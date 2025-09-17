@@ -1,0 +1,159 @@
+name: Devin Security Review
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2  # Necesario para obtener el commit anterior
+    
+    - name: Get commit information
+      id: commit-info
+      run: |
+        COMMIT_SHA="${{ github.sha }}"
+        COMMIT_URL="https://github.com/${{ github.repository }}/commit/${COMMIT_SHA}"
+        echo "commit_sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+        echo "commit_url=${COMMIT_URL}" >> $GITHUB_OUTPUT
+        echo "repository=${{ github.repository }}" >> $GITHUB_OUTPUT
+    
+    - name: Trigger Devin Security Review
+      id: devin-review
+      run: |
+        # Construir el prompt para Devin
+        PROMPT="Revisa este repositorio y verifica que el commit que se está haciendo (${COMMIT_URL}) no contenga ninguna vulnerabilidad de seguridad. 
+
+        Repositorio: https://github.com/${{ github.repository }}
+        Commit a revisar: ${COMMIT_URL}
+        
+        Por favor analiza:
+        1. Vulnerabilidades de seguridad en el código
+        2. Exposición de secretos o credenciales
+        3. Inyección de código malicioso
+        4. Configuraciones inseguras
+        5. Dependencias con vulnerabilidades conocidas
+        
+        Si encuentras algún problema de seguridad, agrega un comentario detallado explicando:
+        - Qué vulnerabilidad encontraste
+        - Dónde se encuentra (archivo y línea)
+        - Cómo solucionarla
+        - Nivel de severidad (crítico, alto, medio, bajo)
+        
+        Si no encuentras problemas, confirma que el commit es seguro para ser integrado."
+
+        # Llamar a la API de Devin
+        RESPONSE=$(curl -s -X POST \
+          -H "Authorization: Bearer ${{ secrets.DEVIN_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"prompt\": \"$PROMPT\",
+            \"idempotent\": true,
+            \"title\": \"Security Review - Commit ${{ steps.commit-info.outputs.commit_sha }}\"
+          }" \
+          https://api.devin.ai/v1/sessions)
+        
+        echo "Devin API Response: $RESPONSE"
+        
+        # Extraer session_id y url de la respuesta
+        SESSION_ID=$(echo $RESPONSE | jq -r '.session_id // empty')
+        SESSION_URL=$(echo $RESPONSE | jq -r '.url // empty')
+        
+        if [ -n "$SESSION_ID" ] && [ -n "$SESSION_URL" ]; then
+          echo "session_id=${SESSION_ID}" >> $GITHUB_OUTPUT
+          echo "session_url=${SESSION_URL}" >> $GITHUB_OUTPUT
+          echo "✅ Devin security review iniciada exitosamente"
+          echo "📋 Session ID: ${SESSION_ID}"
+          echo "🔗 URL de la sesión: ${SESSION_URL}"
+        else
+          echo "❌ Error al crear la sesión de Devin"
+          echo "Response: $RESPONSE"
+          exit 1
+        fi
+      env:
+        COMMIT_URL: ${{ steps.commit-info.outputs.commit_url }}
+    
+    - name: Comment on PR with Devin session
+      if: github.event_name == 'pull_request' && steps.devin-review.outputs.session_url
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const sessionUrl = '${{ steps.devin-review.outputs.session_url }}';
+          const sessionId = '${{ steps.devin-review.outputs.session_id }}';
+          const commitUrl = '${{ steps.commit-info.outputs.commit_url }}';
+          
+          const comment = `## 🔒 Revisión de Seguridad con Devin
+          
+          Se ha iniciado una revisión automática de seguridad para este commit usando Devin AI.
+          
+          **Detalles:**
+          - 📋 Session ID: \`${sessionId}\`
+          - 🔗 [Ver revisión en Devin](${sessionUrl})
+          - 📝 Commit revisado: [${context.payload.pull_request.head.sha.substring(0, 7)}](${commitUrl})
+          
+          **¿Qué se está revisando?**
+          - Vulnerabilidades de seguridad en el código
+          - Exposición de secretos o credenciales  
+          - Inyección de código malicioso
+          - Configuraciones inseguras
+          - Dependencias con vulnerabilidades conocidas
+          
+          Devin analizará el código y proporcionará un reporte detallado. Por favor revisa los resultados antes de hacer merge.
+          
+          ---
+          *Esta revisión fue generada automáticamente por GitHub Actions*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+    
+    - name: Add commit status
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const state = '${{ steps.devin-review.outcome }}' === 'success' ? 'success' : 'failure';
+          const description = state === 'success' 
+            ? 'Devin security review iniciada exitosamente' 
+            : 'Error al iniciar la revisión de seguridad con Devin';
+          
+          github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: '${{ steps.commit-info.outputs.commit_sha }}',
+            state: state,
+            target_url: '${{ steps.devin-review.outputs.session_url }}',
+            description: description,
+            context: 'devin/security-review'
+          });
+    
+    - name: Summary
+      if: always()
+      run: |
+        echo "## 🔒 Resumen de Revisión de Seguridad" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit revisado:** ${{ steps.commit-info.outputs.commit_sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Repositorio:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.devin-review.outcome }}" = "success" ]; then
+          echo "**Estado:** ✅ Revisión iniciada exitosamente" >> $GITHUB_STEP_SUMMARY
+          echo "**Session ID:** ${{ steps.devin-review.outputs.session_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "**URL de Devin:** ${{ steps.devin-review.outputs.session_url }}" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "**Estado:** ❌ Error al iniciar la revisión" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Configuración requerida:" >> $GITHUB_STEP_SUMMARY
+        echo "- Asegúrate de tener configurado el secret \`DEVIN_API_KEY\` en tu repositorio" >> $GITHUB_STEP_SUMMARY
+        echo "- El secret debe contener tu token de API de Devin" >> $GITHUB_STEP_SUMMARY
