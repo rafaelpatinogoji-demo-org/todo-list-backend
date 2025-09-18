@@ -1,4 +1,5 @@
 const Comment = require('../models/Comment');
+const notificationService = require('../services/notificationService');
 
 const f_getAllComments = async (p_req, p_res) => {
   try {
@@ -44,6 +45,24 @@ const f_createComment = async (p_req, p_res) => {
     const v_savedComment = await v_comment.save();
     const v_populatedComment = await Comment.findById(v_savedComment._id)
       .populate('movie_id', 'title year');
+    
+    try {
+      await notificationService.createNotification({
+        user_id: v_savedComment.movie_id,
+        type: 'comment',
+        title: 'New Comment Added',
+        message: `${v_savedComment.name} commented: "${v_savedComment.text.substring(0, 100)}${v_savedComment.text.length > 100 ? '...' : ''}"`,
+        data: {
+          comment_id: v_savedComment._id,
+          movie_id: v_savedComment.movie_id,
+          commenter_name: v_savedComment.name
+        },
+        priority: 'medium'
+      });
+    } catch (notificationError) {
+      console.error('Failed to create notification for new comment:', notificationError);
+    }
+    
     p_res.status(201).json(v_populatedComment);
   } catch (p_error) {
     p_res.status(400).json({ message: p_error.message });
