@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
 const connectDB = require('./src/config/database');
 const movieRoutes = require('./src/routes/movieRoutes');
 const commentRoutes = require('./src/routes/commentRoutes');
@@ -7,9 +8,16 @@ const userRoutes = require('./src/routes/userRoutes');
 const theaterRoutes = require('./src/routes/theaterRoutes');
 const sessionRoutes = require('./src/routes/sessionRoutes');
 const embeddedMovieRoutes = require('./src/routes/embeddedMovieRoutes');
+const notificationRoutes = require('./src/routes/notificationRoutes');
+const notificationPreferencesRoutes = require('./src/routes/notificationPreferencesRoutes');
+const notificationTemplateRoutes = require('./src/routes/notificationTemplateRoutes');
+const { f_initializeWebSocket } = require('./src/services/websocketService');
+const { f_initializeNotificationProcessor } = require('./src/services/notificationProcessor');
 
 const v_app = express();
 const c_PORT = process.env.PORT || 3000;
+
+const v_server = http.createServer(v_app);
 
 connectDB();
 
@@ -24,6 +32,10 @@ v_app.use('/api/theaters', theaterRoutes);
 v_app.use('/api/sessions', sessionRoutes);
 v_app.use('/api/embedded-movies', embeddedMovieRoutes);
 
+v_app.use('/api/notifications', notificationRoutes);
+v_app.use('/api/notification-preferences', notificationPreferencesRoutes);
+v_app.use('/api/notification-templates', notificationTemplateRoutes);
+
 v_app.get('/', (p_req, p_res) => {
   p_res.json({
     message: 'MFlix API Server',
@@ -34,7 +46,10 @@ v_app.get('/', (p_req, p_res) => {
       users: '/api/users',
       theaters: '/api/theaters',
       sessions: '/api/sessions',
-      embeddedMovies: '/api/embedded-movies'
+      embeddedMovies: '/api/embedded-movies',
+      notifications: '/api/notifications',
+      notificationPreferences: '/api/notification-preferences',
+      notificationTemplates: '/api/notification-templates'
     }
   });
 });
@@ -48,8 +63,12 @@ v_app.use((p_err, p_req, p_res, p_next) => {
   p_res.status(500).json({ message: 'Internal server error' });
 });
 
-v_app.listen(c_PORT, () => {
+f_initializeWebSocket(v_server);
+f_initializeNotificationProcessor();
+
+v_server.listen(c_PORT, () => {
   console.log(`Server running on port ${c_PORT}`);
+  console.log('WebSocket server initialized');
 });
 
 module.exports = v_app;

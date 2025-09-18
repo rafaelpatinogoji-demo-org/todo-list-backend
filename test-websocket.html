@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>MFlix Notifications WebSocket Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io('http://localhost:3000');
+        const statusDiv = document.getElementById('status');
+        const messagesDiv = document.getElementById('messages');
+        
+        socket.on('connect', () => {
+            statusDiv.innerHTML = 'Connected! Socket ID: ' + socket.id;
+            
+            // Authenticate with test user
+            socket.emit('authenticate', { user_id: '68cb7e09caa4ea47a928472e' });
+        });
+        
+        socket.on('new_notification', (notification) => {
+            const div = document.createElement('div');
+            div.innerHTML = `<strong>New Notification:</strong> ${notification.title} - ${notification.message}`;
+            messagesDiv.appendChild(div);
+        });
+        
+        socket.on('notification_marked_read', (data) => {
+            const div = document.createElement('div');
+            div.innerHTML = `<em>Notification ${data.notification_id} marked as read</em>`;
+            messagesDiv.appendChild(div);
+        });
+        
+        socket.on('disconnect', () => {
+            statusDiv.innerHTML = 'Disconnected';
+        });
+        
+        socket.on('error', (error) => {
+            const div = document.createElement('div');
+            div.innerHTML = `<span style="color: red;">Error: ${error.message}</span>`;
+            messagesDiv.appendChild(div);
+        });
+    </script>
+</body>
+</html>
