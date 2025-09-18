@@ -7,6 +7,11 @@ const userRoutes = require('./src/routes/userRoutes');
 const theaterRoutes = require('./src/routes/theaterRoutes');
 const sessionRoutes = require('./src/routes/sessionRoutes');
 const embeddedMovieRoutes = require('./src/routes/embeddedMovieRoutes');
+const eventRoutes = require('./src/routes/eventRoutes');
+const promotionRoutes = require('./src/routes/promotionRoutes');
+const eventTicketRoutes = require('./src/routes/eventTicketRoutes');
+const notificationRoutes = require('./src/routes/notificationRoutes');
+const analyticsRoutes = require('./src/routes/analyticsRoutes');
 
 const v_app = express();
 const c_PORT = process.env.PORT || 3000;
@@ -23,6 +28,11 @@ v_app.use('/api/users', userRoutes);
 v_app.use('/api/theaters', theaterRoutes);
 v_app.use('/api/sessions', sessionRoutes);
 v_app.use('/api/embedded-movies', embeddedMovieRoutes);
+v_app.use('/api/events', eventRoutes);
+v_app.use('/api/promotions', promotionRoutes);
+v_app.use('/api/event-tickets', eventTicketRoutes);
+v_app.use('/api/notifications', notificationRoutes);
+v_app.use('/api/analytics', analyticsRoutes);
 
 v_app.get('/', (p_req, p_res) => {
   p_res.json({
@@ -34,7 +44,12 @@ v_app.get('/', (p_req, p_res) => {
       users: '/api/users',
       theaters: '/api/theaters',
       sessions: '/api/sessions',
-      embeddedMovies: '/api/embedded-movies'
+      embeddedMovies: '/api/embedded-movies',
+      events: '/api/events',
+      promotions: '/api/promotions',
+      eventTickets: '/api/event-tickets',
+      notifications: '/api/notifications',
+      analytics: '/api/analytics'
     }
   });
 });
