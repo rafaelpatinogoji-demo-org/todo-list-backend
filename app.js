@@ -3,6 +3,10 @@ const cors = require('cors');
 const connectDB = require('./src/config/database');
 const movieRoutes = require('./src/routes/movieRoutes');
 const commentRoutes = require('./src/routes/commentRoutes');
+const userRoutes = require('./src/routes/userRoutes');
+const theaterRoutes = require('./src/routes/theaterRoutes');
+const sessionRoutes = require('./src/routes/sessionRoutes');
+const embeddedMovieRoutes = require('./src/routes/embeddedMovieRoutes');
 
 const v_app = express();
 const c_PORT = process.env.PORT || 3000;
@@ -15,6 +19,10 @@ v_app.use(express.urlencoded({ extended: true }));
 
 v_app.use('/api/movies', movieRoutes);
 v_app.use('/api/comments', commentRoutes);
+v_app.use('/api/users', userRoutes);
+v_app.use('/api/theaters', theaterRoutes);
+v_app.use('/api/sessions', sessionRoutes);
+v_app.use('/api/embedded-movies', embeddedMovieRoutes);
 
 v_app.get('/', (p_req, p_res) => {
   p_res.json({
@@ -22,7 +30,11 @@ v_app.get('/', (p_req, p_res) => {
     version: '1.0.0',
     endpoints: {
       movies: '/api/movies',
-      comments: '/api/comments'
+      comments: '/api/comments',
+      users: '/api/users',
+      theaters: '/api/theaters',
+      sessions: '/api/sessions',
+      embeddedMovies: '/api/embedded-movies'
     }
   });
 });
