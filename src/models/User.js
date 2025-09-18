@@ -13,9 +13,30 @@ const c_userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationToken: {
+    type: String,
+    default: null
+  },
+  emailVerificationExpires: {
+    type: Date,
+    default: null
+  },
+  passwordResetToken: {
+    type: String,
+    default: null
+  },
+  passwordResetExpires: {
+    type: Date,
+    default: null
   }
 }, {
-  collection: 'users'
+  collection: 'users',
+  timestamps: true
 });
 
 module.exports = mongoose.model('User', c_userSchema);
