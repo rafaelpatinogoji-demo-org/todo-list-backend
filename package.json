@@ -8,15 +8,24 @@
     "dev": "nodemon app.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "mongoose": "^7.5.0",
-    "dotenv": "^16.3.1",
-    "cors": "^2.8.5"
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.6",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "keywords": ["express", "mongodb", "mongoose", "mflix", "api"],
+  "keywords": [
+    "express",
+    "mongodb",
+    "mongoose",
+    "mflix",
+    "api"
+  ],
   "author": "Rafael Patiño",
   "license": "MIT"
 }
