@@ -7,6 +7,7 @@ const {
   f_deleteComment,
   f_getCommentsByMovie
 } = require('../controllers/commentController');
+const { f_trackUserBehavior } = require('../middleware/trackingMiddleware');
 
 const v_router = express.Router();
 
@@ -14,7 +15,7 @@ const v_router = express.Router();
 v_router.get('/', f_getAllComments);
 v_router.get('/:id', f_getCommentById);
 v_router.get('/movie/:movieId', f_getCommentsByMovie);
-v_router.post('/', f_createComment);
+v_router.post('/', f_trackUserBehavior('comment'), f_createComment);
 v_router.put('/:id', f_updateComment);
 v_router.delete('/:id', f_deleteComment);
 
