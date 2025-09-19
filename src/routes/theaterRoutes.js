@@ -1,4 +1,5 @@
 const express = require('express');
+const f_jwtAuth = require('../middleware/jwtAuth');
 const {
   f_getAllTheaters,
   f_getTheaterById,
@@ -9,8 +10,8 @@ const {
 
 const v_router = express.Router();
 
-v_router.get('/', f_getAllTheaters);
-v_router.get('/:id', f_getTheaterById);
+v_router.get('/', f_jwtAuth, f_getAllTheaters);
+v_router.get('/:id', f_jwtAuth, f_getTheaterById);
 v_router.post('/', f_createTheater);
 v_router.put('/:id', f_updateTheater);
 v_router.delete('/:id', f_deleteTheater);
