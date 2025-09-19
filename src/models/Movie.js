@@ -35,7 +35,11 @@ const c_movieSchema = new mongoose.Schema({
     type: Number,
     required: false
   },
-  imdb: c_imdbSchema
+  imdb: c_imdbSchema,
+  num_mflix_reviews: {
+    type: Number,
+    default: 0
+  }
 }, {
   collection: 'movies'
 });

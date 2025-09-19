@@ -7,6 +7,7 @@ const userRoutes = require('./src/routes/userRoutes');
 const theaterRoutes = require('./src/routes/theaterRoutes');
 const sessionRoutes = require('./src/routes/sessionRoutes');
 const embeddedMovieRoutes = require('./src/routes/embeddedMovieRoutes');
+const reviewRoutes = require('./src/routes/reviewRoutes');
 
 const v_app = express();
 const c_PORT = process.env.PORT || 3000;
@@ -23,6 +24,7 @@ v_app.use('/api/users', userRoutes);
 v_app.use('/api/theaters', theaterRoutes);
 v_app.use('/api/sessions', sessionRoutes);
 v_app.use('/api/embedded-movies', embeddedMovieRoutes);
+v_app.use('/api/reviews', reviewRoutes);
 
 v_app.get('/', (p_req, p_res) => {
   p_res.json({
@@ -34,7 +36,8 @@ v_app.get('/', (p_req, p_res) => {
       users: '/api/users',
       theaters: '/api/theaters',
       sessions: '/api/sessions',
-      embeddedMovies: '/api/embedded-movies'
+      embeddedMovies: '/api/embedded-movies',
+      reviews: '/api/reviews'
     }
   });
 });
